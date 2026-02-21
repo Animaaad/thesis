@@ -299,7 +299,7 @@ int main() {
 
         int graph_counter = 0;
         for (Graph G1 : input) {
-            std::vector<Multipole> vec = {G1};
+            std::vector<Multipole> vec = subdivision(G1);
             for (Multipole M : vec) {
                 std::vector<Graph> gs = replacement(M, Hexagram);
                 for (Graph G2 : gs) {
@@ -319,4 +319,5 @@ int main() {
     } catch (const std::exception& e) {
         std::cerr << e.what() << "\n";
     }
+
 } /**/

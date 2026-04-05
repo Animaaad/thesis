@@ -56,8 +56,8 @@ void offsetMultipole(Multipole& M, int offset) {
     }
 }
 
-void glue2connectors(Multipole& A, Multipole& B, const std::vector<int>& ca,
-                     const std::vector<int>& cb, int subA, int subB) {
+void glueStraight(Multipole& A, Multipole& B, const std::vector<int>& ca,
+                  const std::vector<int>& cb, int subA, int subB) {
     int maxN = A.adj.size();
     A.adj.resize(maxN + 1);
 
@@ -76,6 +76,67 @@ void glue2connectors(Multipole& A, Multipole& B, const std::vector<int>& ca,
     B.adj[b1 - subB].push_back(a1);
 
     A.semiedges.push_back({maxN + subA, 1});
+}
+
+void glueFlipped(Multipole& A, Multipole& B, const std::vector<int>& ca,
+                 const std::vector<int>& cb, int subA, int subB) {
+    int maxN = A.adj.size();
+    A.adj.resize(maxN + 1);
+
+    int a0 = A.semiedges[ca[0]].first;
+    int a1 = A.semiedges[ca[1]].first;
+
+    int b0 = B.semiedges[cb[0]].first;
+    int b1 = B.semiedges[cb[1]].first;
+
+    A.adj[a1 - subA].push_back(maxN + subA);
+    A.adj[maxN].push_back(a1);
+    A.adj[maxN].push_back(b0);
+    A.adj[a0 - subA].push_back(b1);
+
+    B.adj[b0 - subB].push_back(maxN + subA);
+    B.adj[b1 - subB].push_back(a0);
+
+    A.semiedges.push_back({maxN + subA, 1});
+}
+
+void glue2connectors(std::vector<Multipole>& A, std::vector<Multipole>& B,
+                     std::vector<Multipole>& C, int n1, int n2) {
+    std::vector<bool> flips[8] = {{false, false, false}, {false, false, true},
+                                  {false, true, false},  {false, true, true},
+                                  {true, false, false},  {true, false, true},
+                                  {true, true, false},   {true, true, true}};
+    auto CA = get2Connectors(A[0]);
+    auto CB = get2Connectors(B[0]);
+    auto CC = get2Connectors(C[0]);
+    int n = -1;
+    std::vector<int> cons[8] = {{0, 0, 0}, {0, 0, 1}, {0, 1, 0}, {0, 1, 1},
+                                {1, 0, 0}, {1, 0, 1}, {1, 1, 0}, {1, 1, 1}};
+    for (int i = 0; i < 8; i++) {
+        for (int j = 0; j < 8; j++) {
+            n++;
+            if (flips[i][0]) {
+                glueStraight(A[n], B[n], CA[cons[j][0]], CB[cons[j][1]], 0,
+                             n1);
+            } else {
+                glueFlipped(A[n], B[n], CA[cons[j][0]], CB[cons[j][1]], 0, n1);
+            }
+            if (flips[i][1]) {
+                glueStraight(B[n], C[n], CB[(cons[j][1] + 1) % 2],
+                             CC[cons[j][2]], n1, n2);
+            } else {
+                glueFlipped(B[n], C[n], CB[(cons[j][1] + 1) % 2],
+                            CC[cons[j][2]], n1, n2);
+            }
+            if (flips[i][2]) {
+                glueStraight(C[n], A[n], CC[(cons[j][2] + 1) % 2],
+                             CA[(cons[j][0] + 1) % 2], n2, 0);
+            } else {
+                glueFlipped(C[n], A[n], CC[(cons[j][2] + 1) % 2],
+                            CA[(cons[j][0] + 1) % 2], n2, 0);
+            }
+        }
+    }
 }
 
 void remove2connectors(Multipole& A) {
@@ -160,7 +221,7 @@ void checkGraph(const Graph& adj) {
             // check multiedge
             if (seen.count(v)) {
                 hasMultiEdge = true;
-                std::cout << v << " " << u;
+                std::cout << v << " " << u << " ";
             } else {
                 seen.insert(v);
             }
@@ -185,51 +246,62 @@ void makeSnarks(const std::vector<Multipole>& negators) {
                 const Multipole& B = negators[j];
                 const Multipole& C = negators[k];
 
-                std::vector<int> cons[8] = {{0, 0, 0}, {0, 0, 1},
-                                  {0, 1, 0},  {0, 1, 1},
-                                  {1, 0, 0},  {1, 0, 1},
-                                  {1, 1, 0},   {1, 1, 1}};
+                Multipole AB = A;
+                Multipole BB = B;
+                Multipole CBp = C;
 
-                for (int i = 0; i < 8; i++) {
-                    Multipole AB = A;
-                    Multipole BB = B;
-                    Multipole CBp = C;
-                    int n1 = A.adj.size() + 1;
-                    int n2 = n1 + B.adj.size() + 1;
+                std::vector<Multipole> As(64);
+                std::vector<Multipole> Bs(64);
+                std::vector<Multipole> Cs(64);
 
-                    offsetMultipole(BB, n1);
-                    offsetMultipole(CBp, n2);
+                int n1 = A.adj.size() + 1;
+                int n2 = n1 + B.adj.size() + 1;
 
-                    auto CA = get2Connectors(AB);
-                    auto CB = get2Connectors(BB);
-                    auto CC = get2Connectors(CBp);
+                for (int i = 0; i < 64; i++) {
+                    As[i] = A;
+                    Bs[i] = B;
+                    Cs[i] = C;
+                    offsetMultipole(Bs[i], n1);
+                    offsetMultipole(Cs[i], n2);
+                }
 
-                    glue2connectors(AB, BB, CA[cons[i][0]], CB[cons[i][1]], 0, n1);
-                    glue2connectors(BB, CBp, CB[(cons[i][1] + 1) % 2], CC[cons[i][2]], n1, n2);
-                    glue2connectors(CBp, AB, CC[(cons[i][2] + 1) % 2], CA[(cons[i][0] + 1) % 2],
-                                    n2, 0);
-                    remove2connectors(AB);
-                    remove2connectors(BB);
-                    remove2connectors(CBp);
+                offsetMultipole(BB, n1);
+                offsetMultipole(CBp, n2);
 
-                    Multipole R;
+                auto CA = get2Connectors(AB);
+                auto CB = get2Connectors(BB);
+                auto CC = get2Connectors(CBp);
 
-                    R.adj = AB.adj;
-                    R.adj.insert(R.adj.end(), BB.adj.begin(), BB.adj.end());
-                    R.adj.insert(R.adj.end(), CBp.adj.begin(), CBp.adj.end());
+                glue2connectors(As, Bs, Cs, n1, n2);
 
-                    R.semiedges = AB.semiedges;
-                    R.semiedges.insert(R.semiedges.end(), BB.semiedges.begin(),
-                                       BB.semiedges.end());
-                    R.semiedges.insert(R.semiedges.end(), CBp.semiedges.begin(),
-                                       CBp.semiedges.end());
-                    for (int i = 3; i < 5; i++) {
-                        auto a = R.semiedges[3];
-                        R.semiedges.erase(R.semiedges.begin() + 3);
-                        R.semiedges.push_back(a);
+                for (int i = 0; i < 64; i++) {
+                    remove2connectors(As[i]);
+                    remove2connectors(Bs[i]);
+                    remove2connectors(Cs[i]);
+                }
+
+                std::vector<Multipole> R(64);
+                for (int i = 0; i < 64; i++) {
+                    R[i].adj = As[i].adj;
+                    R[i].adj.insert(R[i].adj.end(), Bs[i].adj.begin(),
+                                    Bs[i].adj.end());
+                    R[i].adj.insert(R[i].adj.end(), Cs[i].adj.begin(),
+                                    Cs[i].adj.end());
+
+                    R[i].semiedges = As[i].semiedges;
+                    R[i].semiedges.insert(R[i].semiedges.end(),
+                                          Bs[i].semiedges.begin(),
+                                          Bs[i].semiedges.end());
+                    R[i].semiedges.insert(R[i].semiedges.end(),
+                                          Cs[i].semiedges.begin(),
+                                          Cs[i].semiedges.end());
+                    for (int j = 3; j < 5; j++) {
+                        auto a =    R[i].semiedges[3];
+                        R[i].semiedges.erase(R[i].semiedges.begin() + 3);
+                        R[i].semiedges.push_back(a);
                     }
 
-                    Graph g = connect6poles(R, J);
+                    Graph g = connect6poles(R[i], J);
                     // checkGraph(g);
                     int n = g.size();
                     graph_counter++;

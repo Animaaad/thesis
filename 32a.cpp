@@ -49,7 +49,7 @@ void offsetMultipole(Multipole& M, int offset, int conoffset) {
     M.adj = newAdj;
 
     // shift semiedge attachment points
-    for (std::pair<int, int>& s : M.semiedges) {
+     for (std::pair<int, int>& s : M.semiedges) {
         s.first += offset;
         s.second += conoffset;
     }
@@ -152,8 +152,7 @@ Graph connect7poles(const Multipole& A, const Multipole& B) {
     return G;
 }
 
-std::vector<Multipole> make7Poles(const std::vector<Multipole>& poles) {
-    std::vector<Multipole> res;
+void makeSnarks(const std::vector<Multipole>& poles) {
     std::ofstream file("snarks.ba");
     int graph_counter = 0;
 
@@ -218,7 +217,6 @@ std::vector<Multipole> make7Poles(const std::vector<Multipole>& poles) {
                                 }
                             }
             }
-    return res;
 }
 
 Multipole fromAdjWithLeafSemiedges(const Graph& adjInput) {
@@ -315,5 +313,5 @@ int main() {
     for (Graph& negator : negators) {
         negators2.push_back(fromAdjWithLeafSemiedges(negator));
     }
-    std::vector<Multipole> vec = make7Poles(negators2);
+    makeSnarks(negators2);
 }

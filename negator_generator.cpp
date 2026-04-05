@@ -25,7 +25,7 @@ std::vector<std::array<int, 3>> findPaths2(Graph G) {
     for (int v = 0; v < G.size(); v++) {
         for (int u : G[v])
             for (int w : G[v]) {
-                if (u < w && u != w) {
+                if (u < w) {
                     paths.push_back({u, v, w});
                 }
             }

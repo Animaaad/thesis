@@ -62,36 +62,20 @@ Multipole connect_dangles(Multipole& G, int n, std::vector<int> connector1,
     int v2 = connector1[1];
     int u1 = connector2[0];
     int u2 = connector2[1];
-    int erase = 0;
-    for (int& j : G[v1]) {
-        if (j >= v1 / n * n + n || j < v1 / n * n) {
-            erase = j;
-        }
-    }
+    int erase = 2;
+    
     G[v1].erase(G[v1].begin() + erase);
     G[v1].push_back(u1);
-    for (int& j : G[v2]) {
-        if (j >= v2 / n * n + n || j < v2 / n * n) {
-            erase = j;
-        }
-    }
+    
     G[v2].erase(G[v2].begin() + erase);
     G[v2].push_back(u2);
-    for (int& j : G[u1]) {
-        if (j >= u1 / n * n + n || j < u1 / n * n) {
-            erase = j;
-        }
-    }
+    
     if (!last) {
         G[u1].erase(G[u1].begin() + erase);
     }
 
     G[u1].push_back(v1);
-    for (int& j : G[u2]) {
-        if (j >= u2 / n * n + n || j < u2 / n * n) {
-            erase = j;
-        }
-    }
+    
     if (!last) {
         G[u2].erase(G[u2].begin() + erase);
     }
@@ -265,7 +249,6 @@ int main() {
 
         Multipole M1 = {{1, 2, 3}, {0, 2, 4}, {0, 1, 5}, {0, 6, 7}, {1, 6, 8},
                         {2, 6, 9}, {3, 4, 5}, {3},       {4},       {5}};
-        K4 = {{1, 2, 3}, {0, 2, 3}, {0, 1, 3}, {0, 1, 2}};
 
         int graph_counter = 0;
         for (Graph G1 : input) {

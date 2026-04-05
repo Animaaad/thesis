@@ -63,35 +63,16 @@ Multipole connect_dangles(Multipole& G, int n, std::vector<int> connector1,
     int v2 = connector1[1];
     int u1 = connector2[0];
     int u2 = connector2[1];
-    int erase = 0;
-    for (int& j : G[v1]) {
-        if (j >= v1 / n * n + n || j < v1 / n * n) {
-            erase = j;
-        }
-    }
+    int erase = 2;
+    
     G[v1].erase(G[v1].begin() + erase);
 
-    for (int& j : G[v2]) {
-        if (j >= v2 / n * n + n || j < v2 / n * n) {
-            erase = j;
-        }
-    }
     G[v2].erase(G[v2].begin() + erase);
 
-    for (int& j : G[u1]) {
-        if (j >= u1 / n * n + n || j < u1 / n * n) {
-            erase = j;
-        }
-    }
     if (!last) {
         G[u1].erase(G[u1].begin() + erase);
     }
 
-    for (int& j : G[u2]) {
-        if (j >= u2 / n * n + n || j < u2 / n * n) {
-            erase = j;
-        }
-    }
     if (!last) {
         G[u2].erase(G[u2].begin() + erase);
     }
@@ -300,7 +281,7 @@ int main() {
         for (Graph G1 : input) {
             std::vector<Multipole> vec = subdivision(G1);
             for (Multipole M : vec) {
-                std::vector<Graph> gs = replacement(M, Hexagram);
+                std::vector<Multipole> gs = replacement(M, Hexagram);
                 for (Graph G2 : gs) {
                     graph_counter++;
                     G2 = even_2_2_2_junction(G2, V4);

@@ -268,10 +268,6 @@ void makeSnarks(const std::vector<Multipole>& negators) {
                 offsetMultipole(BB, n1);
                 offsetMultipole(CBp, n2);
 
-                auto CA = get2Connectors(AB);
-                auto CB = get2Connectors(BB);
-                auto CC = get2Connectors(CBp);
-
                 glue2connectors(As, Bs, Cs, n1, n2);
 
                 for (int i = 0; i < 64; i++) {
@@ -406,7 +402,7 @@ int main() {
     J.adj = {{1, 8, 4}, {0, 2, 3}, {1, 6, 10}, {1, 7, 11},  {0, 5}, {4, 6, 7},
              {2, 5},    {3, 5},    {0, 9},     {8, 10, 11}, {2, 9}, {3, 9}};
     J.semiedges = {{7, 0}, {4, 0}, {6, 0}, {11, 1}, {8, 1}, {10, 1}};
-    std::vector<Graph> negators = read_ba_file("negators_unique.ba");
+    std::vector<Graph> negators = read_ba_file("negators.ba");
     std::vector<Multipole> negators2;
     for (Graph& negator : negators) {
         negators2.push_back(fromAdjWithLeafSemiedges(negator));

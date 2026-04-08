@@ -373,7 +373,7 @@ int main() {
     M11.adj = {{1, 2},    {0, 3, 8}, {0, 4, 7}, {1, 5}, {2, 6}, {3, 6, 10},
                {4, 5, 9}, {2, 10},   {1, 9},    {6, 8}, {5, 7}};
     M11.semiedges = {{3, 0}, {7, 1}, {9, 1}, {0, 2}, {4, 3}, {8, 4}, {10, 4}};
-    std::vector<Graph> negators = read_ba_file("negators_unique.ba");
+    std::vector<Graph> negators = read_ba_file("negators.ba");
     std::vector<Multipole> negators2;
     for (Graph& negator : negators) {
         negators2.push_back(fromAdjWithLeafSemiedges(negator));

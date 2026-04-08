@@ -37,6 +37,21 @@ std::vector<std::vector<int>> get2Connectors(const Multipole& P) {
     return res;
 }
 
+int get1Connector(const Multipole& P) {
+    std::map<int, std::vector<int>> byExtra;
+
+    for (int i = 0; i < (int)P.semiedges.size(); i++) {
+        byExtra[P.semiedges[i].second].push_back(i);
+    }
+
+    std::vector<std::vector<int>> res;
+
+    for (auto& kv : byExtra) {
+        if (kv.second.size() == 1) return kv.second[0];
+    }
+    return -1;
+}
+
 void offsetMultipole(Multipole& M, int offset) {
     int oldN = M.adj.size();
     std::vector<std::vector<int>> newAdj = M.adj;
@@ -58,89 +73,19 @@ void offsetMultipole(Multipole& M, int offset) {
 
 void glue2connectors(Multipole& A, Multipole& B, const std::vector<int>& ca,
                      const std::vector<int>& cb, int subA, int subB) {
-    int maxN = A.adj.size();
-    A.adj.resize(maxN + 1);
-
     int a0 = A.semiedges[ca[0]].first;
     int a1 = A.semiedges[ca[1]].first;
 
     int b0 = B.semiedges[cb[0]].first;
     int b1 = B.semiedges[cb[1]].first;
 
-    A.adj[a0 - subA].push_back(maxN + subA);
-    A.adj[maxN].push_back(a0);
-    A.adj[maxN].push_back(b0);
+    A.adj[a0 - subA].push_back(b0);
     A.adj[a1 - subA].push_back(b1);
 
-    B.adj[b0 - subB].push_back(maxN + subA);
+    B.adj[b0 - subB].push_back(a0);
     B.adj[b1 - subB].push_back(a1);
-
-    A.semiedges.push_back({maxN + subA, 1});
 }
 
-void remove2connectors(Multipole& A) {
-    for (int i = 0; i < 4; i++) {
-        A.semiedges.erase(A.semiedges.begin() + 1);
-    }
-}
-
-Graph connect6poles(const Multipole& A, const Multipole& B) {
-    Graph G;
-
-    int nA = A.adj.size();
-    int nB = B.adj.size();
-
-    G.resize(nA + nB);
-
-    // copy A
-    for (int i = 0; i < nA; ++i) G[i] = A.adj[i];
-
-    // copy B (shifted)
-    for (int i = 0; i < nB; ++i)
-        for (int v : B.adj[i]) G[i + nA].push_back(v + nA);
-
-    // --- classify connectors ---
-    std::map<int, std::vector<int>> Aconn;
-    std::map<int, std::vector<int>> Bconn;
-
-    for (std::size_t i = 0; i < A.semiedges.size(); ++i)
-        Aconn[A.semiedges[i].second].push_back(A.semiedges[i].first);
-
-    for (std::size_t i = 0; i < B.semiedges.size(); ++i)
-        Bconn[B.semiedges[i].second].push_back(B.semiedges[i].first + nA);
-
-    std::vector<std::pair<std::vector<int>, std::vector<int>>> three;
-
-    for (std::map<int, std::vector<int>>::iterator it = Aconn.begin();
-         it != Aconn.end(); ++it) {
-        int id = it->first;
-
-        if (it->second.size() == 3)
-            three.push_back(std::make_pair(it->second, Bconn[id]));
-    }
-
-    // --- glue 3-connectors ---
-    for (std::size_t i = 0; i < three.size(); ++i) {
-        int a0 = three[i].first[0];
-        int a1 = three[i].first[1];
-        int a2 = three[i].first[2];
-
-        int b0 = three[i].second[0];
-        int b1 = three[i].second[1];
-        int b2 = three[i].second[2];
-
-        G[a0].push_back(b0);
-        G[b0].push_back(a0);
-
-        G[a1].push_back(b1);
-        G[b1].push_back(a1);
-
-        G[a2].push_back(b2);
-        G[b2].push_back(a2);
-    }
-
-    return G;
-}
 
 void checkGraph(const Graph& adj) {
     bool hasLoop = false;
@@ -173,6 +118,40 @@ void checkGraph(const Graph& adj) {
     }
 }
 
+void connectRest(Multipole& AB, Multipole& BB, Multipole& CB, Multipole& DB,
+                 Multipole& EB, std::vector<int> ca, std::vector<int> ce, int v,
+                 int subB, int subC, int subD, int subE) {
+    int eMax = EB.adj.size();
+    EB.adj.resize(eMax + 1);
+
+    int a0 = AB.semiedges[ca[0]].first;
+    int a1 = AB.semiedges[ca[1]].first;
+    int e0 = EB.semiedges[ce[0]].first;
+    int e1 = EB.semiedges[ce[1]].first;
+
+    int a = AB.semiedges[get1Connector(AB)].first;
+    int b = BB.semiedges[get1Connector(BB)].first;
+    int c = CB.semiedges[get1Connector(CB)].first;
+    int d = DB.semiedges[get1Connector(DB)].first;
+    int e = EB.semiedges[get1Connector(EB)].first;
+
+    AB.adj[a0].push_back(v);
+    EB.adj[e0 - subE].push_back(v);
+    CB.adj[c - subC].push_back(v);
+    EB.adj[eMax].push_back(a0);
+    EB.adj[eMax].push_back(e0);
+    EB.adj[eMax].push_back(c);
+    
+    AB.adj[a].push_back(e);
+    EB.adj[e - subE].push_back(v);
+
+    AB.adj[a1].push_back(d);
+    EB.adj[e1 - subE].push_back(b);
+    BB.adj[b - subB].push_back(e1);
+    DB.adj[d - subD].push_back(a1);
+
+}
+
 void makeSnarks(const std::vector<Multipole>& negators) {
     std::ofstream file("snarks.ba");
     int graph_counter = 0;
@@ -181,66 +160,63 @@ void makeSnarks(const std::vector<Multipole>& negators) {
     for (int i = 0; i < m; i++)
         for (int j = 0; j < m; j++)
             for (int k = 0; k < m; k++) {
-                const Multipole& A = negators[i];
-                const Multipole& B = negators[j];
-                const Multipole& C = negators[k];
+                for (int l = 0; l < m; l++)
+                    for (int f = 0; f < m; f++) {
+                        const Multipole& A = negators[i];
+                        const Multipole& B = negators[j];
+                        const Multipole& C = negators[k];
+                        const Multipole& D = negators[l];
+                        const Multipole& E = negators[f];
 
-                std::vector<int> cons[8] = {{0, 0, 0}, {0, 0, 1},
-                                  {0, 1, 0},  {0, 1, 1},
-                                  {1, 0, 0},  {1, 0, 1},
-                                  {1, 1, 0},   {1, 1, 1}};
+                        Multipole AB = A;
+                        Multipole BB = B;
+                        Multipole CBp = C;
+                        Multipole DB = D;
+                        Multipole EB = E;
 
-                for (int i = 0; i < 8; i++) {
-                    Multipole AB = A;
-                    Multipole BB = B;
-                    Multipole CBp = C;
-                    int n1 = A.adj.size() + 1;
-                    int n2 = n1 + B.adj.size() + 1;
+                        int n1 = A.adj.size();
+                        int n2 = n1 + B.adj.size();
+                        int n3 = n2 + C.adj.size();
+                        int n4 = n3 + D.adj.size();
 
-                    offsetMultipole(BB, n1);
-                    offsetMultipole(CBp, n2);
+                        offsetMultipole(BB, n1);
+                        offsetMultipole(CBp, n2);
+                        offsetMultipole(DB, n3);
+                        offsetMultipole(EB, n4);
 
-                    auto CA = get2Connectors(AB);
-                    auto CB = get2Connectors(BB);
-                    auto CC = get2Connectors(CBp);
+                        auto CA = get2Connectors(AB);
+                        auto CB = get2Connectors(BB);
+                        auto CC = get2Connectors(CBp);
+                        auto CD = get2Connectors(DB);
+                        auto CE = get2Connectors(EB);
 
-                    glue2connectors(AB, BB, CA[cons[i][0]], CB[cons[i][1]], 0, n1);
-                    glue2connectors(BB, CBp, CB[(cons[i][1] + 1) % 2], CC[cons[i][2]], n1, n2);
-                    glue2connectors(CBp, AB, CC[(cons[i][2] + 1) % 2], CA[(cons[i][0] + 1) % 2],
-                                    n2, 0);
-                    remove2connectors(AB);
-                    remove2connectors(BB);
-                    remove2connectors(CBp);
+                        glue2connectors(AB, BB, CA[0], CB[1], 0, n1);
+                        glue2connectors(BB, CBp, CB[0], CC[1], n1, n2);
+                        glue2connectors(CBp, DB, CC[0], CD[1], n2, n3);
+                        glue2connectors(DB, EB, CD[0], CE[1], n3, n4);
 
-                    Multipole R;
+                        connectRest(AB, BB, CBp, DB, EB, CA[1], CE[0],
+                                    n4 + E.adj.size(), n1, n2, n3, n4);
 
-                    R.adj = AB.adj;
-                    R.adj.insert(R.adj.end(), BB.adj.begin(), BB.adj.end());
-                    R.adj.insert(R.adj.end(), CBp.adj.begin(), CBp.adj.end());
+                        Graph g;
 
-                    R.semiedges = AB.semiedges;
-                    R.semiedges.insert(R.semiedges.end(), BB.semiedges.begin(),
-                                       BB.semiedges.end());
-                    R.semiedges.insert(R.semiedges.end(), CBp.semiedges.begin(),
-                                       CBp.semiedges.end());
-                    for (int i = 3; i < 5; i++) {
-                        auto a = R.semiedges[3];
-                        R.semiedges.erase(R.semiedges.begin() + 3);
-                        R.semiedges.push_back(a);
-                    }
+                        g = AB.adj;
+                        g.insert(g.end(), BB.adj.begin(), BB.adj.end());
+                        g.insert(g.end(), CBp.adj.begin(), CBp.adj.end());
+                        g.insert(g.end(), DB.adj.begin(), DB.adj.end());
+                        g.insert(g.end(), EB.adj.begin(), EB.adj.end());
 
-                    Graph g = connect6poles(R, J);
-                    // checkGraph(g);
-                    int n = g.size();
-                    graph_counter++;
-                    file << graph_counter << "\n" << n << "\n";
-                    for (int i = 0; i < n; i++) {
-                        for (int j : g[i]) {
-                            file << j << " ";
+                        // checkGraph(g);
+                        int n = g.size();
+                        graph_counter++;
+                        file << graph_counter << "\n" << n << "\n";
+                        for (int i = 0; i < n; i++) {
+                            for (int j : g[i]) {
+                                file << j << " ";
+                            }
+                            file << "\n";
                         }
-                        file << "\n";
                     }
-                }
             }
 }
 

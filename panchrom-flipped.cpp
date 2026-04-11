@@ -17,9 +17,45 @@ using namespace std;
 using Graph = std::vector<std::vector<int>>;
 using Multipole = std::vector<std::vector<int>>;
 
-Multipole V4(10);
-Multipole Hexagram(12);
-Graph K4(4);
+bool isValidAdjList(const std::vector<std::vector<int>>& g) {
+    int n = g.size();
+
+    // 1–3: bounds, self-loops, duplicates
+    for (int i = 0; i < n; i++) {
+        std::unordered_set<int> seen;
+
+        for (int j : g[i]) {
+            if (j < 0 || j >= n)
+                return false;
+
+            if (j == i)
+                return false;
+
+            if (seen.count(j))
+                return false;
+
+            seen.insert(j);
+        }
+    }
+
+    // 4: symmetry
+    for (int i = 0; i < n; i++) {
+        for (int j : g[i]) {
+            bool found = false;
+            for (int x : g[j]) {
+                if (x == i) {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
 
 bool contains(const std::vector<pair<int, int>>& v, const pair<int, int>& x) {
     return std::find(v.begin(), v.end(), x) != v.end();
@@ -171,11 +207,11 @@ Multipole connect_dangles(Multipole G, int n1, int n2,
     int u1 = connector2[0];
     int u2 = connector2[1];
     int erase = 2;
-    
+
     G[v1].erase(G[v1].begin() + erase);
-    
+
     G[v2].erase(G[v2].begin() + erase);
-    
+
     G[u1].erase(G[u1].begin() + erase);
 
     G[u2].erase(G[u2].begin() + erase);
@@ -191,7 +227,7 @@ Multipole connect_dangles(Multipole G, int n1, int n2,
         G[u1].push_back(v2);
         G[u2].push_back(v1);
     }
-    
+
     return G;
 }
 
@@ -207,36 +243,7 @@ Graph connectMatchingDangles(Graph& G, int n1, int n2, int u, int v) {
     return G;
 }
 
-void checkGraph(const Graph& adj) {
-    bool hasLoop = false;
-    bool hasMultiEdge = false;
 
-    int n = adj.size();
-
-    for (int u = 0; u < n; u++) {
-        std::set<int> seen;
-
-        for (int v : adj[u]) {
-            // check loop
-            if (v == u) {
-                hasLoop = true;
-            }
-
-            // check multiedge
-            if (seen.count(v)) {
-                hasMultiEdge = true;
-                std::cout << v << " " << u << std::endl;
-            } else {
-                seen.insert(v);
-            }
-        }
-    }
-    id++;
-    if (hasLoop) std::cout << "Graph has loops\n";
-    if (hasMultiEdge) {
-        std::cout << id << std::endl;
-    }
-}
 
 std::vector<Graph> replacement(Graph& G,
                                std::vector<Multipole> Replacement_multipoles,
@@ -271,6 +278,7 @@ std::vector<Graph> replacement(Graph& G,
 
     for (int i = 0; i < G.size(); i++) {
         int which = (bits >> i) & 1;
+
         current_n[i + 1] = current_n[i] + ns[which];
 
         Gr1.insert(Gr1.end(), Replacement_multipoles[which].begin(),
@@ -289,6 +297,7 @@ std::vector<Graph> replacement(Graph& G,
 
     for (int i = 0; i < G.size(); i++) {
         for (int& j : G[i]) {
+
             if (i < j) {
                 for (Multipole Gr : ret) {
                     int which1 = (bits >> i) & 1;
@@ -297,9 +306,9 @@ std::vector<Graph> replacement(Graph& G,
                     int n2 = ns[which2];
                     if (contains(matching, {i, j}) ||
                         contains(matching, {j, i})) {
-                        connectMatchingDangles(
+                        ret2.push_back(connectMatchingDangles(
                             Gr, n1, n2, connectors[which1][3][0] + current_n[i],
-                            connectors[which2][3][0] + current_n[j]);
+                            connectors[which2][3][0] + current_n[j]));
                     } else {
                         std::vector<int> connector1;
                         std::vector<int> connector2;
@@ -312,28 +321,29 @@ std::vector<Graph> replacement(Graph& G,
                                 current_n[j]);
                         }
                         Graph Gr2 = Gr;
-                        Gr =
-                            connect_dangles(Gr, n1, n2, connector1, connector2, false);
-                        Gr2 =
-                            connect_dangles(Gr, n1, n2, connector1, connector2, true);
+                        Gr = connect_dangles(Gr, n1, n2, connector1, connector2,
+                                             false);
 
                         ret2.push_back(Gr);
-                        ret2.push_back(Gr2);
+                        if (i < 8) {
+                            Gr2 = connect_dangles(Gr2, n1, n2, connector1,
+                                                  connector2, true);
+                            ret2.push_back(Gr2);
+                        }
                     }
                 }
                 if (i < j && !(contains(matching, {i, j}) ||
-                              contains(matching, {j, i}))) {
+                               contains(matching, {j, i}))) {
                     connectors_counter[i]++;
                     connectors_counter[j]++;
-                    ret.clear();
                 }
+                ret.clear();
                 ret.insert(ret.end(), ret2.begin(), ret2.end());
                 ret2.clear();
             }
         }
     }
-
-    // checkGraph(Gr);
+    isValidAdjList(ret[0]);
     return ret;
 }
 
@@ -393,7 +403,7 @@ int main() {
         {16, 19, 37}, {16, 18, 22}, {17, 21, 38}, {1, 18, 39},  {17, 27, 28},
         {13, 28, 29}, {7, 27, 31},  {24, 26, 29}, {24, 25, 30}, {25, 27, 36},
         {28, 31, 32}, {26, 30, 32}, {30, 31, 35}, {5},          {0},
-        {30},         {29},         {20},         {22},         {23}};
+        {32},         {29},         {20},         {22},         {23}};
 
     try {
         std::ofstream file("snarks.ba");

@@ -17,9 +17,7 @@ int id = 0;
 using Graph = std::vector<std::vector<int>>;
 using Multipole = std::vector<std::vector<int>>;
 
-Multipole V4(10);
-Multipole Hexagram(12);
-Graph K4(4);
+
 
 bool contains(const std::vector<pair<int, int>>& v, const pair<int, int>& x) {
     return std::find(v.begin(), v.end(), x) != v.end();
@@ -365,7 +363,7 @@ int main() {
         {16, 19, 37}, {16, 18, 22}, {17, 21, 38}, {1, 18, 39},  {17, 27, 28},
         {13, 28, 29}, {7, 27, 31},  {24, 26, 29}, {24, 25, 30}, {25, 27, 36},
         {28, 31, 32}, {26, 30, 32}, {30, 31, 35}, {5},          {0},
-        {30},         {29},         {20},         {22},         {23}};
+        {32},         {29},         {20},         {22},         {23}};
 
     try {
         std::ofstream file("snarks.ba");

@@ -17,9 +17,6 @@ struct Multipole {
     std::vector<std::pair<int, int>>
         semiedges;  // (remaining vertex, deleted vertex)
 };
-int id = 0;
-
-Multipole J;
 
 std::vector<std::vector<std::vector<int>>> get2Connectors(const Multipole& P) {
     std::map<int, std::vector<int>> byExtra;
@@ -96,36 +93,7 @@ void glue2connectors(Multipole& A, Multipole& B, const std::vector<int>& ca,
     B.adj[b1 - subB].push_back(a1);
 }
 
-void checkGraph(const Graph& adj) {
-    bool hasLoop = false;
-    bool hasMultiEdge = false;
 
-    int n = adj.size();
-
-    for (int u = 0; u < n; u++) {
-        std::set<int> seen;
-
-        for (int v : adj[u]) {
-            // check loop
-            if (v == u) {
-                hasLoop = true;
-            }
-
-            // check multiedge
-            if (seen.count(v)) {
-                hasMultiEdge = true;
-                std::cout << v << " " << u;
-            } else {
-                seen.insert(v);
-            }
-        }
-    }
-    id++;
-    if (hasLoop) std::cout << "Graph has loops\n";
-    if (hasMultiEdge) {
-        std::cout << id << std::endl;
-    }
-}
 
 void connectRest(Multipole& AB, Multipole& BB, Multipole& CB, Multipole& DB,
                  Multipole& EB, std::vector<int> ca, std::vector<int> ce, int v,
@@ -152,7 +120,7 @@ void connectRest(Multipole& AB, Multipole& BB, Multipole& CB, Multipole& DB,
     EB.adj[eMax].push_back(c);
 
     AB.adj[a].push_back(e);
-    EB.adj[e - subE].push_back(v);
+    EB.adj[e - subE].push_back(a);
 
     AB.adj[a1].push_back(d);
     EB.adj[e1 - subE].push_back(b);

@@ -13,7 +13,6 @@ using Multipole = std::vector<std::vector<int>>;
 
 Multipole V4(10);
 Multipole Hexagram(12);
-Graph K4(4);
 
 std::tuple<Multipole, Multipole> vertices_junction(Multipole& M1, Multipole& M2,
                                                    int u, int v, int shift) {

@@ -143,7 +143,7 @@ void connectRest(Multipole& AB, Multipole& BB, Multipole& CB, Multipole& DB,
     EB.adj[eMax].push_back(c);
     
     AB.adj[a].push_back(e);
-    EB.adj[e - subE].push_back(v);
+    EB.adj[e - subE].push_back(a);
 
     AB.adj[a1].push_back(d);
     EB.adj[e1 - subE].push_back(b);
@@ -306,10 +306,6 @@ std::vector<Graph> read_ba_file(const std::string& filename) {
 }
 
 int main() {
-    int graph_counter = 0;
-    J.adj = {{1, 8, 4}, {0, 2, 3}, {1, 6, 10}, {1, 7, 11},  {0, 5}, {4, 6, 7},
-             {2, 5},    {3, 5},    {0, 9},     {8, 10, 11}, {2, 9}, {3, 9}};
-    J.semiedges = {{7, 0}, {4, 0}, {6, 0}, {11, 1}, {8, 1}, {10, 1}};
     std::vector<Graph> negators = read_ba_file("negators.ba");
     std::vector<Multipole> negators2;
     for (Graph& negator : negators) {
